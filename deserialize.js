@@ -116,7 +116,7 @@ function patch(parent, value, current) {
 }
 
 const streams = deserialize(
-  JSON.parse(document.getElementById("stream-data").textContent)
+  JSON.parse(document.getElementById("ssg-data").textContent)
 );
 const nodes = getStreamNodes(document.querySelector("main"));
 

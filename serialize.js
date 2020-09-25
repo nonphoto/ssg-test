@@ -1,3 +1,5 @@
+import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
+
 let nextId = 0;
 
 class Stream {
@@ -113,20 +115,10 @@ const app = element(
   element("span", source("!"))
 );
 
-Deno.writeTextFileSync(
-  "index.html",
-  `
-  <html>
-    <head>
-      <meta charset="utf-8"/>
-    </head>
-    <body>
-      <main>${serializeContent(app)}</main>
-      <script id="stream-data" type="application/json">${JSON.stringify(
-        serializeStreams(app)
-      )}</script>
-      <script src="/deserialize.js" type="module"></script>
-    </body>
-  </html>
-`
-);
+const dataText = JSON.stringify(serializeStreams(app));
+const deserializeText = Deno.readTextFileSync("./deserialize.js");
+const outputText = await renderFileToString("index.ejs", {
+  head: `<script id="ssg-data" type="application/json">${dataText}</script><script type="module">${deserializeText}</script>`,
+  body: `<div id="ssg-content">${serializeContent(app)}</div>`,
+});
+Deno.writeTextFileSync("index.html", outputText);
