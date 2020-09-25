@@ -1,13 +1,27 @@
-class Source {
+let nextId = 0;
+
+class Stream {
+  constructor(id) {
+    if (id) {
+      this.id = id;
+    } else {
+      this.id = nextId++;
+    }
+  }
+}
+
+class Source extends Stream {
   constructor(value) {
+    super();
     this.value = value;
   }
 }
 
-class Sink {
+class Sink extends Stream {
   constructor(fn, ...deps) {
+    super();
     this.fn = fn.toString();
-    this.deps = deps;
+    this.deps = deps.map((dep) => dep.id);
   }
 }
 
@@ -26,13 +40,12 @@ class Element {
     if (arg == null || argType === "boolean") {
     } else if (Array.isArray(arg)) {
       for (let i = 0; i < arg.length; i++) {
-        assign(arg[i]);
+        this.assign(arg[i]);
       }
     } else if (
       argType === "string" ||
       arg instanceof Element ||
-      arg instanceof Source ||
-      arg instanceof Sink
+      arg instanceof Stream
     ) {
       this.children.push(arg);
     } else if (argType === "object") {
@@ -55,35 +68,44 @@ export function source(...args) {
   return new Source(...args);
 }
 
-export function serialize(node) {
-  if (typeof Node === "string") {
+export function serializeContent(node) {
+  if (typeof node === "string") {
     return node;
-  } else if (node instanceof Sink || node instanceof Source) {
-    return `<!--stream-->`;
+  } else if (node instanceof Stream) {
+    return `<!--stream=${node.id}-->`;
   } else if (node instanceof Element) {
-    const inner = node.children.map(serialize).join("");
+    const children = node.children.map(serializeContent).join("");
     const attributes = Object.entries(node.attributes)
       .map(([key, value]) => ` ${key}="${value}"`)
       .join("");
-    return `<${node.tagName}${attributes}>${inner}</${node.tagName}>`;
+    return `<${node.tagName}${attributes}>${children}</${node.tagName}>`;
   } else {
     return node.toString();
   }
 }
 
-const time = new Source();
+export function serializeStreams(node) {
+  if (node instanceof Source) {
+    return [node];
+  } else if (node instanceof Sink) {
+    return [node, ...node.deps.map(serializeStreams).flat()];
+  } else if (node instanceof Element) {
+    return node.children.map(serializeStreams).flat();
+  } else {
+    return [];
+  }
+}
 
-console.log(
-  serialize(
-    element(
-      "div",
-      element("span", "hello"),
-      element("strong", "world"),
-      element(
-        "span",
-        sink((t) => t * 0.001, time)
-      ),
-      element("span", source("!"))
-    )
-  )
+const time = new Stream("time");
+
+const app = element(
+  "div",
+  [element("span", "hello"), element("strong", "world")],
+  element(
+    "span",
+    sink((t) => t * 0.001, time)
+  ),
+  element("span", source("!"))
 );
+
+console.log(serializeContent(app), JSON.stringify(serializeStreams(app)));
