@@ -1,76 +1,8 @@
 import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
+import app from "./app.js";
+import { Element, Sink, Source, Stream } from "./dom.js";
 
-let nextId = 0;
-
-class Stream {
-  constructor(id) {
-    if (id) {
-      this.id = id;
-    } else {
-      this.id = nextId++;
-    }
-  }
-}
-
-class Source extends Stream {
-  constructor(value) {
-    super();
-    this.value = value;
-  }
-}
-
-class Sink extends Stream {
-  constructor(fn, ...deps) {
-    super();
-    this.fn = fn.toString();
-    this.deps = deps.map((dep) => dep.id);
-  }
-}
-
-class Element {
-  constructor(tagName, ...args) {
-    this.tagName = tagName;
-    this.children = [];
-    this.attributes = {};
-    for (let i = 0; i < args.length; i++) {
-      this.assign(args[i]);
-    }
-  }
-
-  assign(arg) {
-    const argType = typeof arg;
-    if (arg == null || argType === "boolean") {
-    } else if (Array.isArray(arg)) {
-      for (let i = 0; i < arg.length; i++) {
-        this.assign(arg[i]);
-      }
-    } else if (
-      argType === "string" ||
-      arg instanceof Element ||
-      arg instanceof Stream
-    ) {
-      this.children.push(arg);
-    } else if (argType === "object") {
-      Object.assign(this.attributes, arg);
-    } else {
-      this.children.push(arg.toString());
-    }
-  }
-}
-
-export function element(...args) {
-  return new Element(...args);
-}
-
-export function sink(...args) {
-  return new Sink(...args);
-}
-
-export function source(...args) {
-  return new Source(...args);
-}
-
-export function serializeContent(node) {
+function serializeContent(node) {
   if (typeof node === "string") {
     return node;
   } else if (node instanceof Stream) {
@@ -86,7 +18,7 @@ export function serializeContent(node) {
   }
 }
 
-export function serializeStreams(node) {
+function serializeStreams(node) {
   if (node instanceof Source) {
     const { id, value } = node;
     return { [id]: { value } };
@@ -102,18 +34,6 @@ export function serializeStreams(node) {
     return {};
   }
 }
-
-const time = new Stream("time");
-
-const app = element(
-  "div",
-  [element("span", "hello"), element("strong", "world")],
-  element(
-    "span",
-    sink((t) => Math.floor(t * 0.001), time)
-  ),
-  element("span", source("!"))
-);
 
 const dataText = JSON.stringify(serializeStreams(app));
 const deserializeText = Deno.readTextFileSync("./deserialize.js");
