@@ -86,13 +86,18 @@ export function serializeContent(node) {
 
 export function serializeStreams(node) {
   if (node instanceof Source) {
-    return [node];
+    const { id, value } = node;
+    return { [id]: { value } };
   } else if (node instanceof Sink) {
-    return [node, ...node.deps.map(serializeStreams).flat()];
+    const { id, deps, fn } = node;
+    return Object.assign(
+      { [id]: { deps, fn } },
+      ...node.deps.map(serializeStreams)
+    );
   } else if (node instanceof Element) {
-    return node.children.map(serializeStreams).flat();
+    return Object.assign({}, ...node.children.map(serializeStreams));
   } else {
-    return [];
+    return {};
   }
 }
 
@@ -103,9 +108,25 @@ const app = element(
   [element("span", "hello"), element("strong", "world")],
   element(
     "span",
-    sink((t) => t * 0.001, time)
+    sink((t) => Math.floor(t * 0.001), time)
   ),
   element("span", source("!"))
 );
 
-console.log(serializeContent(app), JSON.stringify(serializeStreams(app)));
+Deno.writeTextFileSync(
+  "index.html",
+  `
+  <html>
+    <head>
+      <meta charset="utf-8"/>
+    </head>
+    <body>
+      <main>${serializeContent(app)}</main>
+      <script id="stream-data" type="application/json">${JSON.stringify(
+        serializeStreams(app)
+      )}</script>
+      <script src="/deserialize.js" type="module"></script>
+    </body>
+  </html>
+`
+);
