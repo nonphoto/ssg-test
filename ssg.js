@@ -1,5 +1,7 @@
 import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
-import app from "./app.js";
+import * as flags from "https://deno.land/std/flags/mod.ts";
+import * as fs from "https://deno.land/std/fs/mod.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
 import { Element, Sink, Source, Stream } from "./dom.js";
 
 function serializeContent(node) {
@@ -35,10 +37,30 @@ function serializeStreams(node) {
   }
 }
 
-const dataText = JSON.stringify(serializeStreams(app));
-const deserializeText = Deno.readTextFileSync("./deserialize.js");
-const outputText = await renderFileToString("index.ejs", {
-  head: `<script id="ssg-data" type="application/json">${dataText}</script><script type="module">${deserializeText}</script>`,
-  body: `<div id="ssg-content">${serializeContent(app)}</div>`,
-});
-Deno.writeTextFileSync("index.html", outputText);
+const args = flags.parse(Deno.args);
+const inPath = path.normalize(args._[0]);
+const outPath = path.normalize(args.out);
+const runtimeText = Deno.readTextFileSync("./runtime.js");
+await fs.ensureFile(outPath);
+
+let count = 0;
+async function build() {
+  console.log("building...");
+  const app = await import(`./${inPath}?${count}`);
+  const dataText = JSON.stringify(serializeStreams(app.default));
+  const outputText = await renderFileToString("./template.ejs", {
+    head: `<script id="ssg-data" type="application/json">${dataText}</script><script type="module">${runtimeText}</script>`,
+    body: `<div id="ssg-content">${serializeContent(app.default)}</div>`,
+  });
+  await Deno.writeTextFile(outPath, outputText);
+  console.log("done");
+  count += 1;
+}
+
+build();
+
+const watcher = Deno.watchFs(inPath);
+for await (const _ of watcher) {
+  console.log(_);
+  build();
+}
