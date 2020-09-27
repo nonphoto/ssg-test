@@ -2,7 +2,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <script id="ssg-data" type="application/json">{"27":{"deps":["time"],"fn":"(t) => Math.floor(t * 0.001)"},"28":{"value":"!"}}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
+    <script id="ssg-data" type="application/json">{"streamTemplates":[{"fn":"(t) => Math.floor(t * 0.001)","deps":["time"]},{"value":"!"}]}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
 
 const time = S.data(0);
@@ -16,7 +16,8 @@ const specialStreamLookup = {
   time,
 };
 
-const deserialize = (data) => {
+const deserialize = (string) => {
+  const data = JSON.parse(string).streamTemplates;
   const completed = {};
   const create = (key) => {
     const item = data[key];
@@ -119,9 +120,7 @@ function patch(parent, value, current) {
   }
 }
 
-const streams = deserialize(
-  JSON.parse(document.getElementById("ssg-data").textContent)
-);
+const streams = deserialize(document.getElementById("ssg-data").textContent);
 const nodes = getStreamNodes(document.querySelector("main"));
 
 for (let key in nodes) {
@@ -132,6 +131,6 @@ for (let key in nodes) {
 </script>
   </head>
   <body>
-    <main><div id="ssg-content"><div><div style="[object Object]"></div><span><!--stream=27--></span><span><!--stream=28--></span></div></div></main>
+    <main><div id="ssg-content"><div><div style="[object Object]"></div><span><!--stream=0--></span><span><!--stream=1--></span></div></div></main>
   </body>
 </html>

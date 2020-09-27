@@ -12,7 +12,8 @@ const specialStreamLookup = {
   time,
 };
 
-const deserialize = (data) => {
+const deserialize = (string) => {
+  const data = JSON.parse(string).streamTemplates;
   const completed = {};
   const create = (key) => {
     const item = data[key];
@@ -115,9 +116,7 @@ function patch(parent, value, current) {
   }
 }
 
-const streams = deserialize(
-  JSON.parse(document.getElementById("ssg-data").textContent)
-);
+const streams = deserialize(document.getElementById("ssg-data").textContent);
 const nodes = getStreamNodes(document.querySelector("main"));
 
 for (let key in nodes) {

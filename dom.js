@@ -1,11 +1,7 @@
-let nextId = 0;
-
 export class Stream {
   constructor(id) {
-    if (id) {
+    if (typeof id === "string") {
       this.id = id;
-    } else {
-      this.id = nextId++;
     }
   }
 }
