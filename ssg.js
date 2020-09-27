@@ -4,6 +4,40 @@ import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { Element, Sink, Source, Stream } from "./dom.js";
 
+function getPath(pathArray, object) {
+  let v = object;
+  let i = 0;
+  let p;
+  while (i < pathArray.length) {
+    if (v == null) {
+      return;
+    }
+    p = pathArray[i];
+    v = v[p];
+    i += 1;
+  }
+  return v;
+}
+
+function collectPaths(object) {
+  if (object instanceof Stream) {
+    return [[]];
+  } else if (Array.isArray(object)) {
+    return object.reduce(
+      (acc, v, k) => [...acc, ...collectPaths(v).map((p) => [k, ...p])],
+      []
+    );
+  } else if (typeof object === "object") {
+    return [].concat(
+      ...Object.entries(object).map(([k, v]) =>
+        collectPaths(v).map((p) => [k, ...p])
+      )
+    );
+  } else {
+    return [[]];
+  }
+}
+
 function serialize(node) {
   const streamTemplates = collectStreamTemplates(node);
   const contentString = nodeToString(node, streamTemplates);
@@ -20,8 +54,8 @@ function nodeToString(node, streamTemplates) {
     const children = node.children
       .map((child) => nodeToString(child, streamTemplates))
       .join("");
-    const attributes = Object.entries(node.attributes)
-      .map(([key, value]) => ` ${key}="${value}"`)
+    const attributes = collectPaths(node.attributes)
+      .map((p) => ` ${p.join(".")}="${getPath(p, node.attributes)}"`)
       .join("");
     return `<${node.tagName}${attributes}>${children}</${node.tagName}>`;
   } else {
