@@ -1,4 +1,5 @@
-import { element, sink, source, time } from "./dom.js";
+import { element } from "./element.js";
+import { sink, source, time } from "./stream.js";
 
 export default element(
   "div",

@@ -8,7 +8,7 @@ function loop(t = 0) {
 }
 loop();
 
-const specialStreamLookup = {
+const namedStreams = {
   time,
 };
 
@@ -18,21 +18,21 @@ const deserialize = (string) => {
   const create = (key) => {
     const item = data[key];
     if (completed[key]) {
-    } else if (!item) {
-      completed[key] = specialStreamLookup[key];
-    } else if ("value" in item) {
-      completed[key] = S.data(item.value);
-    } else if ("fn" in item && "deps" in item) {
-      const completedDeps = item.deps.map(create);
+    } else if ("name" in item) {
+      completed[key] = namedStreams[item.name];
+    } else if ("fn" in item) {
+      const completedDeps = item.deps ? item.deps.map(create) : [];
       const fn = new Function("return " + item.fn)();
       completed[key] = S(() => {
         return fn(...completedDeps.map((v) => v()));
       });
+    } else if ("value" in item) {
+      completed[key] = S.data(item.value);
     }
     return completed[key];
   };
-  for (let key in data) {
-    create(key);
+  for (let i = 0; i < data.length; i++) {
+    create(i);
   }
   return completed;
 };

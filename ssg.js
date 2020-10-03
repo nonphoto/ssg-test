@@ -2,7 +2,8 @@ import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
 import * as flags from "https://deno.land/std/flags/mod.ts";
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { Element, Sink, Source, Stream } from "./dom.js";
+import { StreamTemplate } from "./stream.js";
+import { ElementTemplate } from "./element.js";
 
 function getPath(pathArray, object) {
   let v = object;
@@ -20,7 +21,7 @@ function getPath(pathArray, object) {
 }
 
 function collectPaths(object) {
-  if (object instanceof Stream) {
+  if (object instanceof StreamTemplate) {
     return [[]];
   } else if (Array.isArray(object)) {
     return object.reduce(
@@ -41,16 +42,20 @@ function collectPaths(object) {
 function serialize(node) {
   const streamTemplates = collectStreamTemplates(node);
   const contentString = nodeToString(node, streamTemplates);
-  const dataString = JSON.stringify({ streamTemplates });
+  const dataString = JSON.stringify({
+    streamTemplates: streamTemplates.map((template) =>
+      template.toObject(streamTemplates)
+    ),
+  });
   return [contentString, dataString];
 }
 
 function nodeToString(node, streamTemplates) {
   if (typeof node === "string") {
     return node;
-  } else if (node instanceof Stream) {
-    return `<!--stream=${streamTemplates.indexOf(node)}-->`;
-  } else if (node instanceof Element) {
+  } else if (node instanceof StreamTemplate) {
+    return `<!--stream=${node.getId(streamTemplates)}-->`;
+  } else if (node instanceof ElementTemplate) {
     const children = node.children
       .map((child) => nodeToString(child, streamTemplates))
       .join("");
@@ -64,11 +69,9 @@ function nodeToString(node, streamTemplates) {
 }
 
 function collectStreamTemplates(node) {
-  if (node instanceof Source) {
-    return [node];
-  } else if (node instanceof Sink) {
+  if (node instanceof StreamTemplate) {
     return [node, ...node.deps.map(collectStreamTemplates).flat()];
-  } else if (node instanceof Element) {
+  } else if (node instanceof ElementTemplate) {
     return node.children.map(collectStreamTemplates).flat();
   } else {
     return [];

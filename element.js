@@ -1,27 +1,6 @@
-export class Stream {
-  constructor(id) {
-    if (typeof id === "string") {
-      this.id = id;
-    }
-  }
-}
+import { StreamTemplate } from "./stream.js";
 
-export class Source extends Stream {
-  constructor(value) {
-    super();
-    this.value = value;
-  }
-}
-
-export class Sink extends Stream {
-  constructor(fn, ...deps) {
-    super();
-    this.fn = fn.toString();
-    this.deps = deps.map((dep) => dep.id);
-  }
-}
-
-export class Element {
+export class ElementTemplate {
   constructor(tagName, ...args) {
     this.tagName = tagName;
     this.children = [];
@@ -40,8 +19,8 @@ export class Element {
       }
     } else if (
       argType === "string" ||
-      arg instanceof Element ||
-      arg instanceof Stream
+      arg instanceof ElementTemplate ||
+      arg instanceof StreamTemplate
     ) {
       this.children.push(arg);
     } else if (argType === "object") {
@@ -53,15 +32,5 @@ export class Element {
 }
 
 export function element(...args) {
-  return new Element(...args);
+  return new ElementTemplate(...args);
 }
-
-export function sink(...args) {
-  return new Sink(...args);
-}
-
-export function source(...args) {
-  return new Source(...args);
-}
-
-export const time = new Stream("time");
