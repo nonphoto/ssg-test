@@ -2,7 +2,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <script id="ssg-data" type="application/json">{"streamTemplates":[{"fn":"(t) => Math.floor(t * 0.001)","deps":[1]},{"name":"time"},{"value":"!"}]}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
+    <script id="ssg-data" type="application/json">{"streamTemplates":[{"fn":"(x) => Math.floor(x)","args":[{"type":"stream","value":1}]},{"fn":"(...args) => args.reduce((a, b) => a * b, 1)","args":[{"type":"stream","value":2},{"type":"value","value":0.001}]},{"value":0,"fn":"() => {\n    console.log(\"time\");\n    return 0;\n  }","args":[]}]}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
 
 const time = S.data(0);
@@ -22,15 +22,16 @@ const deserialize = (string) => {
   const create = (key) => {
     const item = data[key];
     if (completed[key]) {
-    } else if ("name" in item) {
-      console.log(item);
-      completed[key] = namedStreams[item.name];
     } else if ("fn" in item) {
-      const completedDeps = item.deps ? item.deps.map(create) : [];
-      const fn = new Function("return " + item.fn)();
-      completed[key] = S(() => {
-        return fn(...completedDeps.map((v) => v()));
+      const args = item.args.map((arg) => {
+        if (arg.type === "stream") {
+          return create(arg.value);
+        } else {
+          return () => arg.value;
+        }
       });
+      const fn = new Function("return " + item.fn)();
+      completed[key] = S(() => fn(...args.map((v) => v())));
     } else if ("value" in item) {
       completed[key] = S.data(item.value);
     }
@@ -132,6 +133,6 @@ for (let key in nodes) {
 </script>
   </head>
   <body>
-    <main><div id="ssg-content"><div><div style.width="1em" style.height="1em" style.borderRadius="1em" style.backgroundColor="[object Object]"></div><span><!--stream=0--></span><span><!--stream=2--></span></div></div></main>
+    <main><div id="ssg-content"><div><div style.width="1em" style.height="1em" style.borderRadius="1em" style.backgroundColor="[object Object]"></div><span><!--stream=0--></span></div></div></main>
   </body>
 </html>

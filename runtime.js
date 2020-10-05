@@ -1,31 +1,22 @@
 import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
 
-const time = S.data(0);
-function loop(t = 0) {
-  time(t);
-  requestAnimationFrame(loop);
-}
-loop();
-
-const namedStreams = {
-  time,
-};
-
 const deserialize = (string) => {
   const data = JSON.parse(string).streamTemplates;
   const completed = {};
   const create = (key) => {
     const item = data[key];
     if (completed[key]) {
-    } else if ("name" in item) {
-      completed[key] = namedStreams[item.name];
     } else if ("fn" in item) {
-      const completedDeps = item.deps ? item.deps.map(create) : [];
-      const fn = new Function("return " + item.fn)();
-      completed[key] = S(() => {
-        return fn(...completedDeps.map((v) => v()));
+      const args = item.args.map((arg) => {
+        if (arg.type === "stream") {
+          return create(arg.value);
+        } else {
+          return () => arg.value;
+        }
       });
+      const fn = new Function("return " + item.fn)();
+      completed[key] = S(() => fn(...args.map((v) => v())));
     } else if ("value" in item) {
       completed[key] = S.data(item.value);
     }

@@ -1,7 +1,8 @@
 export class StreamTemplate {
-  constructor(name) {
-    this.name = name;
-    this.deps = [];
+  constructor(value, fn = "", args = []) {
+    this.value = value;
+    this.fn = fn;
+    this.args = args;
   }
 
   getId(allTemplates) {
@@ -9,35 +10,39 @@ export class StreamTemplate {
   }
 
   toObject(allTemplates) {
-    const result = {};
-    const deps = this.deps.map((dep) => dep.getId(allTemplates));
-    if (typeof this.value !== "undefined") {
-      result.value = this.value;
-    }
-    if (typeof this.name === "string") {
-      result.name = this.name;
-    }
-    if (typeof this.fn === "function") {
-      result.fn = this.fn.toString();
-    }
-    if (deps.length > 0) {
-      result.deps = deps;
-    }
-    return result;
+    const { value, fn, args } = this;
+    const flatArgs = args.map((arg) =>
+      arg instanceof StreamTemplate
+        ? {
+            type: "stream",
+            value: arg.getId(allTemplates),
+          }
+        : { type: "value", value: arg }
+    );
+    return { value, fn, args: flatArgs };
   }
 }
 
-export function source(value) {
-  const result = new StreamTemplate();
-  result.value = value;
-  return result;
-}
+const source = (value) => {
+  return new StreamTemplate(value);
+};
 
-export function sink(fn, ...deps) {
-  const result = new StreamTemplate();
-  result.fn = fn;
-  result.deps = deps;
-  return result;
-}
+const sink = (fn) => (...args) => {
+  return new StreamTemplate(undefined, fn.toString(), args);
+};
 
-export const time = new StreamTemplate("time");
+export const floor = sink((x) => Math.floor(x));
+export const add = sink((...args) => args.reduce((a, b) => a + b, 0));
+export const sub = sink((...args) => args.reduce((a, b) => a - b, 0));
+export const mul = sink((...args) => args.reduce((a, b) => a * b, 1));
+export const div = sink((...args) => args.reduce((a, b) => a / b, 1));
+export const format = sink((strings, ...args) =>
+  strings.map((s, i) => s + (i < args.length ? args[i] : "")).join("")
+);
+export const time = new StreamTemplate(
+  0,
+  (() => {
+    console.log("time");
+    return 0;
+  }).toString()
+);

@@ -1,5 +1,5 @@
 import { element } from "./element.js";
-import { sink, source, time } from "./stream.js";
+import { mul, format, floor, time } from "./stream.js";
 
 export default element(
   "div",
@@ -8,12 +8,8 @@ export default element(
       width: "1em",
       height: "1em",
       borderRadius: "1em",
-      backgroundColor: sink((t) => `hsl(${t * 0.01}deg, 50%, 100%)`, time),
+      backgroundColor: format`hsl(${mul(time, 0.01)}deg, 50%, 100%)`,
     },
   }),
-  element(
-    "span",
-    sink((t) => Math.floor(t * 0.001), time)
-  ),
-  element("span", source("!"))
+  element("span", floor(mul(time, 0.001)))
 );

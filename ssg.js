@@ -70,7 +70,7 @@ function nodeToString(node, streamTemplates) {
 
 function collectStreamTemplates(node) {
   if (node instanceof StreamTemplate) {
-    return [node, ...node.deps.map(collectStreamTemplates).flat()];
+    return [node, ...node.args.map(collectStreamTemplates).flat()];
   } else if (node instanceof ElementTemplate) {
     return node.children.map(collectStreamTemplates).flat();
   } else {
