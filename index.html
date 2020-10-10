@@ -2,38 +2,43 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <script id="ssg-data" type="application/json">{"streamTemplates":[{"fn":"(x) => Math.floor(x)","args":[{"type":"stream","value":1}]},{"fn":"(...args) => args.reduce((a, b) => a * b, 1)","args":[{"type":"stream","value":2},{"type":"value","value":0.001}]},{"value":0,"fn":"() => {\n    console.log(\"time\");\n    return 0;\n  }","args":[]}]}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
+    <script id="ssg-data" type="application/json">{"streamTemplates":[[1,[0,1]],[2,[0,2],[1,0.001]],[4]]}</script><script type="module">import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
+import { Name } from "./stream.ts";
 
 const time = S.data(0);
-function loop(t = 0) {
+
+(function loop(t) {
   time(t);
   requestAnimationFrame(loop);
-}
-loop();
+})();
 
-const namedStreams = {
-  time,
+const streamLookup = {
+  [Name.Value]: S.value,
+  [Name.Floor]: (x) => S(() => Math.floor(x())),
+  [Name.Mul]: (a, b) => S(() => a() * b()),
+  [Name.Format]: (strings, ...args) =>
+    S(() =>
+      strings.map((s, i) => s + (i < args.length ? args[i] : "")).join("")
+    ),
+  [Name.Time]: () => time,
 };
 
 const deserialize = (string) => {
   const data = JSON.parse(string).streamTemplates;
   const completed = {};
   const create = (key) => {
-    const item = data[key];
-    if (completed[key]) {
-    } else if ("fn" in item) {
-      const args = item.args.map((arg) => {
-        if (arg.type === "stream") {
-          return create(arg.value);
-        } else {
-          return () => arg.value;
-        }
-      });
-      const fn = new Function("return " + item.fn)();
-      completed[key] = S(() => fn(...args.map((v) => v())));
-    } else if ("value" in item) {
-      completed[key] = S.data(item.value);
+    const [name, ...args] = data[key];
+    if (!completed[key]) {
+      completed[key] = streamLookup[name](
+        ...args.map(([argType, argValue]) => {
+          if (argType === ArgType.Stream) {
+            return create(argValue);
+          } else {
+            return () => argValue;
+          }
+        })
+      );
     }
     return completed[key];
   };

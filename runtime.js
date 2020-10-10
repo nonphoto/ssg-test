@@ -1,24 +1,40 @@
 import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
+import { Name } from "./stream.ts";
+
+const time = S.data(0);
+
+(function loop(t) {
+  time(t);
+  requestAnimationFrame(loop);
+})();
+
+const streamLookup = {
+  [Name.Value]: S.value,
+  [Name.Floor]: (x) => S(() => Math.floor(x())),
+  [Name.Mul]: (a, b) => S(() => a() * b()),
+  [Name.Format]: (strings, ...args) =>
+    S(() =>
+      strings.map((s, i) => s + (i < args.length ? args[i] : "")).join("")
+    ),
+  [Name.Time]: () => time,
+};
 
 const deserialize = (string) => {
   const data = JSON.parse(string).streamTemplates;
   const completed = {};
   const create = (key) => {
-    const item = data[key];
-    if (completed[key]) {
-    } else if ("fn" in item) {
-      const args = item.args.map((arg) => {
-        if (arg.type === "stream") {
-          return create(arg.value);
-        } else {
-          return () => arg.value;
-        }
-      });
-      const fn = new Function("return " + item.fn)();
-      completed[key] = S(() => fn(...args.map((v) => v())));
-    } else if ("value" in item) {
-      completed[key] = S.data(item.value);
+    const [name, ...args] = data[key];
+    if (!completed[key]) {
+      completed[key] = streamLookup[name](
+        ...args.map(([argType, argValue]) => {
+          if (argType === ArgType.Stream) {
+            return create(argValue);
+          } else {
+            return () => argValue;
+          }
+        })
+      );
     }
     return completed[key];
   };

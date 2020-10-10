@@ -1,5 +1,5 @@
 import { element } from "./element.js";
-import { mul, format, floor, time } from "./stream.js";
+import { mul, format, floor, time } from "./stream.ts";
 
 export default element(
   "div",

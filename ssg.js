@@ -2,7 +2,7 @@ import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
 import * as flags from "https://deno.land/std/flags/mod.ts";
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { StreamTemplate } from "./stream.js";
+import { StreamTemplate } from "./stream.ts";
 import { ElementTemplate } from "./element.js";
 
 function getPath(pathArray, object) {
@@ -44,7 +44,7 @@ function serialize(node) {
   const contentString = nodeToString(node, streamTemplates);
   const dataString = JSON.stringify({
     streamTemplates: streamTemplates.map((template) =>
-      template.toObject(streamTemplates)
+      template.toStub(streamTemplates)
     ),
   });
   return [contentString, dataString];

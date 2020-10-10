@@ -1,4 +1,4 @@
-import { StreamTemplate } from "./stream.js";
+import { StreamTemplate } from "./stream.ts";
 
 export class ElementTemplate {
   constructor(tagName, ...args) {
