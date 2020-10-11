@@ -1,5 +1,5 @@
 import S from "https://cdn.skypack.dev/s-js";
-import reconcile from "./reconcile.js";
+import { patch } from "./dom.js";
 import { Name, ArgType } from "./signal.js";
 
 const time = S.data(0);
@@ -15,7 +15,9 @@ const signalLookup = {
   [Name.Mul]: (a, b) => S(() => a() * b()),
   [Name.Format]: (strings, ...args) =>
     S(() =>
-      strings.map((s, i) => s + (i < args.length ? args[i] : "")).join("")
+      strings()
+        .map((s, i) => s + (i < args.length ? args[i]() : ""))
+        .join("")
     ),
   [Name.Time]: () => time,
 };
@@ -64,63 +66,6 @@ function getSignalNodes(root) {
     result[id] = currentNode;
   }
   return result;
-}
-
-function patch(parent, value, current) {
-  while (typeof current === "function") {
-    current = current();
-  }
-  if (value === current) {
-    return current;
-  }
-  const valueType = typeof value;
-  if (valueType === "string" || valueType === "number") {
-    if (valueType === "number") {
-      value = value.toString();
-    }
-    if (current instanceof Comment) {
-      parent.removeChild(current);
-    } else if (current instanceof Node) {
-      current.nodeValue = value;
-      return current;
-    } else if (Array.isArray(current)) {
-      clear(parent, current);
-    }
-    value = document.createTextNode(value);
-    parent.appendChild(value);
-    return value;
-  } else if (value == null || valueType === "boolean") {
-    return clear(parent, current, value);
-  } else if (valueType === "function") {
-    return S((acc) => patch(parent, value(), acc), current);
-  } else if (Array.isArray(value)) {
-    const array = normalize(value);
-    if (array.length === 0) {
-      return clear(parent, current, "[]");
-    } else {
-      if (Array.isArray(current)) {
-        reconcile(parent, current, array);
-      } else if (current instanceof Node) {
-        reconcile(parent, [current], array);
-      } else {
-        for (let i = 0; i < array.length; i++) {
-          parent.appendChild(array[i]);
-        }
-      }
-      return array;
-    }
-  } else if (value instanceof Node) {
-    if (Array.isArray(current)) {
-      reconcile(parent, current, [value]);
-    } else if (current instanceof Node) {
-      parent.replaceChild(value, current);
-    } else {
-      parent.appendChild(value);
-    }
-    return value;
-  } else {
-    return current;
-  }
 }
 
 const signals = deserialize(document.getElementById("ssg-data").textContent);

@@ -33,19 +33,18 @@ function attributesToString(attributes, signalTemplates) {
               : ""
           )
           .join("");
-        const signalString = entries
+        const signalStrings = entries
           .filter(([, styleValue]) => styleValue instanceof SignalTemplate)
           .map(
             ([styleKey, styleValue]) =>
               `bind-style:${toKebabCase(styleKey)}="${styleValue.getId(
                 signalTemplates
               )}"`
-          )
-          .join(" ");
-        return `style="${styleString}" ${signalString}`;
+          );
+        return [`style="${styleString}"`, ...signalStrings];
       }
     })
-    .join(" ");
+    .flat();
 }
 
 function nodeToString(node, signalTemplates) {
@@ -58,7 +57,9 @@ function nodeToString(node, signalTemplates) {
       .map((child) => nodeToString(child, signalTemplates))
       .join("");
     const attributes = attributesToString(node.attributes, signalTemplates);
-    return `<${node.tagName} ${attributes}>${children}</${node.tagName}>`;
+    console.log(attributes);
+    const tag = [node.tagName, ...attributes].join(" ");
+    return `<${tag}>${children}</${node.tagName}>`;
   } else {
     return node.toString();
   }
@@ -66,9 +67,14 @@ function nodeToString(node, signalTemplates) {
 
 function collectSignalTemplates(node) {
   if (node instanceof SignalTemplate) {
-    return [node, ...node.args.map(collectSignalTemplates).flat()];
+    return [node, ...node.args.flatMap(collectSignalTemplates)];
   } else if (node instanceof ElementTemplate) {
-    return node.children.map(collectSignalTemplates).flat();
+    return [
+      ...collectSignalTemplates(node.attributes),
+      ...node.children.flatMap(collectSignalTemplates),
+    ];
+  } else if (typeof node === "object") {
+    return Object.values(node).flatMap(collectSignalTemplates);
   } else {
     return [];
   }
