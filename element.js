@@ -1,4 +1,4 @@
-import { StreamTemplate } from "./stream.ts";
+import { SignalTemplate } from "./signal.js";
 
 export class ElementTemplate {
   constructor(tagName, ...args) {
@@ -20,7 +20,7 @@ export class ElementTemplate {
     } else if (
       argType === "string" ||
       arg instanceof ElementTemplate ||
-      arg instanceof StreamTemplate
+      arg instanceof SignalTemplate
     ) {
       this.children.push(arg);
     } else if (argType === "object") {

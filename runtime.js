@@ -1,6 +1,6 @@
 import S from "https://cdn.skypack.dev/s-js";
 import reconcile from "./reconcile.js";
-import { Name } from "./stream.ts";
+import { Name, ArgType } from "./signal.js";
 
 const time = S.data(0);
 
@@ -9,7 +9,7 @@ const time = S.data(0);
   requestAnimationFrame(loop);
 })();
 
-const streamLookup = {
+const signalLookup = {
   [Name.Value]: S.value,
   [Name.Floor]: (x) => S(() => Math.floor(x())),
   [Name.Mul]: (a, b) => S(() => a() * b()),
@@ -21,14 +21,14 @@ const streamLookup = {
 };
 
 const deserialize = (string) => {
-  const data = JSON.parse(string).streamTemplates;
+  const data = JSON.parse(string).signalTemplates;
   const completed = {};
   const create = (key) => {
     const [name, ...args] = data[key];
     if (!completed[key]) {
-      completed[key] = streamLookup[name](
+      completed[key] = signalLookup[name](
         ...args.map(([argType, argValue]) => {
-          if (argType === ArgType.Stream) {
+          if (argType === ArgType.Signal) {
             return create(argValue);
           } else {
             return () => argValue;
@@ -44,13 +44,13 @@ const deserialize = (string) => {
   return completed;
 };
 
-function getStreamNodes(root) {
+function getSignalNodes(root) {
   const treeWalker = document.createTreeWalker(
     root,
     NodeFilter.SHOW_COMMENT,
     {
       acceptNode: function (node) {
-        return node.textContent.startsWith("stream=")
+        return node.textContent.startsWith("signal=")
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP;
       },
@@ -123,11 +123,11 @@ function patch(parent, value, current) {
   }
 }
 
-const streams = deserialize(document.getElementById("ssg-data").textContent);
-const nodes = getStreamNodes(document.querySelector("main"));
+const signals = deserialize(document.getElementById("ssg-data").textContent);
+const nodes = getSignalNodes(document.querySelector("main"));
 
 for (let key in nodes) {
   const node = nodes[key];
   const parent = node.parentNode;
-  S((current) => patch(parent, streams[key](), current), node);
+  S((current) => patch(parent, signals[key](), current), node);
 }

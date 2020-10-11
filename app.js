@@ -1,5 +1,5 @@
 import { element } from "./element.js";
-import { mul, format, floor, time } from "./stream.ts";
+import { mul, format, floor, time } from "./signal.js";
 
 export default element(
   "div",
