@@ -61,7 +61,6 @@ function nodeToString(node, signalTemplates) {
       .join("");
     const attributes = attributesToString(node.attributes);
     const signalIds = attributesToSignalIds(node.attributes, signalTemplates);
-    console.log(signalIds);
     const signalAttribute = signalIds
       ? `data-signal-assign='${JSON.stringify(signalIds)}'`
       : "";
@@ -92,24 +91,10 @@ const inPath = path.normalize(args._[0]);
 const outPath = path.normalize(args.out);
 await fs.ensureFile(outPath);
 
-let count = 0;
-async function build() {
-  console.log("building...");
-  const app = await import(`./${inPath}?${count}`);
-  const [content, data] = serialize(app.default);
-  const outputText = await renderFileToString("./template.ejs", {
-    head: `<script id="ssg-data" type="application/json">${data}</script><script type="module" src="./runtime.js"></script>`,
-    body: `<div id="ssg-content">${content}</div>`,
-  });
-  await Deno.writeTextFile(outPath, outputText);
-  console.log("done");
-  count += 1;
-}
-
-build();
-
-const watcher = Deno.watchFs(inPath);
-for await (const _ of watcher) {
-  console.log(_);
-  build();
-}
+const app = await import(`./${inPath}`);
+const [content, data] = serialize(app.default);
+const outputText = await renderFileToString("./template.ejs", {
+  head: `<script id="ssg-data" type="application/json">${data}</script><script type="module" src="./runtime.js"></script>`,
+  body: `<div id="ssg-content">${content}</div>`,
+});
+await Deno.writeTextFile(outPath, outputText);

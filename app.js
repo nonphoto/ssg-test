@@ -6,7 +6,7 @@ export default element(
   { style: { display: "flex" } },
   element("div", {
     style: {
-      width: "1em",
+      width: "2em",
       height: "1em",
       borderRadius: "1em",
       marginRight: "1ch",

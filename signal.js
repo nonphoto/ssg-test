@@ -3,7 +3,6 @@ function enumerate(array) {
 }
 
 export const Name = enumerate(["Value", "Floor", "Mul", "Format", "Time"]);
-console.log(Name);
 
 export const ArgType = enumerate(["Signal", "Constant"]);
 
