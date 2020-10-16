@@ -20,31 +20,34 @@ function serialize(node) {
   return [contentString, dataString];
 }
 
-function attributesToString(attributes, signalTemplates) {
-  return Object.entries(attributes)
-    .map(([key, value]) => {
-      if (key === "style") {
-        const entries = Object.entries(value);
-        const styleString = entries
-          .filter(([, styleValue]) => !(styleValue instanceof SignalTemplate))
-          .map(([styleKey, styleValue]) =>
-            typeof styleValue === "string"
-              ? `${toKebabCase(styleKey)}:${styleValue};`
-              : ""
-          )
-          .join("");
-        const signalStrings = entries
-          .filter(([, styleValue]) => styleValue instanceof SignalTemplate)
-          .map(
-            ([styleKey, styleValue]) =>
-              `bind-style:${toKebabCase(styleKey)}="${styleValue.getId(
-                signalTemplates
-              )}"`
-          );
-        return [`style="${styleString}"`, ...signalStrings];
-      }
-    })
-    .flat();
+function attributesToString(attributes) {
+  return Object.entries(attributes).map(([key, value]) => {
+    if (key === "style") {
+      const styleString = Object.entries(value)
+        .map(
+          ([styleKey, styleValue]) =>
+            `${toKebabCase(styleKey)}:${styleValue.toString()};`
+        )
+        .join("");
+      return `style="${styleString}"`;
+    } else {
+      return `${key}="${value}"`;
+    }
+  });
+}
+
+function attributesToSignalIds(node, signalTemplates) {
+  if (node instanceof SignalTemplate) {
+    return node.getId(signalTemplates);
+  } else if (typeof node === "object") {
+    const entries = Object.entries(node).reduce((acc, [key, value]) => {
+      const newValue = attributesToSignalIds(value, signalTemplates);
+      return typeof newValue !== "undefined" ? [...acc, [key, newValue]] : acc;
+    }, []);
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  } else {
+    return;
+  }
 }
 
 function nodeToString(node, signalTemplates) {
@@ -56,9 +59,13 @@ function nodeToString(node, signalTemplates) {
     const children = node.children
       .map((child) => nodeToString(child, signalTemplates))
       .join("");
-    const attributes = attributesToString(node.attributes, signalTemplates);
-    console.log(attributes);
-    const tag = [node.tagName, ...attributes].join(" ");
+    const attributes = attributesToString(node.attributes);
+    const signalIds = attributesToSignalIds(node.attributes, signalTemplates);
+    console.log(signalIds);
+    const signalAttribute = signalIds
+      ? `data-signal-assign='${JSON.stringify(signalIds)}'`
+      : "";
+    const tag = [node.tagName, ...attributes, signalAttribute].join(" ");
     return `<${tag}>${children}</${node.tagName}>`;
   } else {
     return node.toString();

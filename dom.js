@@ -81,10 +81,8 @@ export function setClassList(node, value) {
 export function setStyle(node, key, value) {
   if (typeof value === "function") {
     S(() => setStyle(node, key, value()));
-  } else if (value == null) {
-    node.style.removeProperty(key);
   } else {
-    node.style.setProperty(key, value);
+    node.style[key] = value;
   }
 }
 
