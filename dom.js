@@ -246,3 +246,36 @@ export function element(tagName, ...args) {
   }
   return parent;
 }
+
+export function defineComponent(name, callback) {
+  const elements = document.querySelectorAll(`[component="${name}"]`);
+  for (let root of elements) {
+    const treeWalker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_ELEMENT,
+      {
+        acceptNode: function (node) {
+          return node.getAttribute("component")
+            ? NodeFilter.FILTER_REJECT
+            : node.getAttribute("ref")
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_SKIP;
+        },
+      }
+    );
+    const nodes = { root };
+    let currentNode = treeWalker.nextNode();
+    while (currentNode) {
+      const ref = currentNode.getAttribute("ref");
+      if (Array.isArray(nodes[ref])) {
+        nodes[ref].push(currentNode);
+      } else if (nodes[ref] instanceof Node) {
+        nodes[ref] = [nodes[ref], currentNode];
+      } else {
+        nodes[ref] = currentNode;
+      }
+      currentNode = treeWalker.nextNode();
+    }
+    callback(nodes);
+  }
+}
