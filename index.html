@@ -2,9 +2,26 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <script id="ssg-data" type="application/json">{"signalTemplates":[[3,[1,["hsl(",", 50%, 50%)"]],[0,1]],[2,[0,2],[1,0.1]],[4],[1,[0,4]],[2,[0,2],[1,0.001]],[4]]}</script><script type="module" src="./runtime.js"></script>
+    <script id="ssg-data" type="application/json">{"signalTemplates":[]}</script><script type="module" src="./runtime.js"></script>
   </head>
   <body>
-    <main><div id="ssg-content"><div style="display:flex;" ><div style="width:2em;height:1em;border-radius:1em;margin-right:1ch;background-color:[object Object];" data-signal-assign='{"style":{"backgroundColor":0}}'></div><span ><!--signal=3--></span></div></div></main>
+    <main><div id="ssg-content">() => {
+  return element(
+    "div",
+    { style: { display: "flex" } },
+    element("div", {
+      style: {
+        width: "2em",
+        height: "1em",
+        borderRadius: "1em",
+        marginRight: "1ch",
+        backgroundColor: format`hsl(${mul(time, 0.1)}, 50%, 50%)`,
+      },
+    }),
+    floor(mul(time, 0.001)),
+    element("div", { onclick: length }, "less"),
+    element("div", { onclick: length }, "more")
+  );
+}</div></main>
   </body>
 </html>

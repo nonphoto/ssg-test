@@ -2,7 +2,14 @@ function enumerate(array) {
   return Object.fromEntries(array.map((value, i) => [value, i]));
 }
 
-export const Name = enumerate(["Value", "Floor", "Mul", "Format", "Time"]);
+export const Name = enumerate([
+  "Value",
+  "Floor",
+  "Mul",
+  "Format",
+  "Time",
+  "Constant",
+]);
 
 export const ArgType = enumerate(["Signal", "Constant"]);
 
@@ -41,6 +48,10 @@ export function mul(a, b) {
 
 export function format(strings, ...args) {
   return new SignalTemplate(Name.Format, strings, ...args);
+}
+
+export function constant(c, s) {
+  return new SignalTemplate(Name.Constant, c, s);
 }
 
 export const time = new SignalTemplate(Name.Time);

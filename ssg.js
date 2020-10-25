@@ -2,14 +2,31 @@ import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
 import * as flags from "https://deno.land/std/flags/mod.ts";
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { SignalTemplate } from "./signal.js";
-import { ElementTemplate } from "./element.js";
+import { isToken, isElement } from "./core.js";
 
 const toKebabCase = (string) => {
   return string.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
 };
 
 function serialize(node) {
+  function nodeToString(node) {
+    if (typeof node === "string") {
+      return node;
+    } else if (isElement(node)) {
+      const children = node.children.map(nodeToString).join("");
+      const attributes = attributesToString(node.attributes);
+      const tokenIds = attributesToSignalIds(node.attributes);
+      const tokenAttribute = tokenIds
+        ? `data-token-assign='${JSON.stringify(tokenIds)}'`
+        : "";
+      const tag = [node.tagName, ...attributes, tokenAttribute].join(" ");
+      return `<${tag}>${children}</${node.tagName}>`;
+    } else if (isToken(node)) {
+      return `<!--token-patch=${getId(node)}-->`;
+    } else {
+      return node.toString();
+    }
+  }
   const signalTemplates = collectSignalTemplates(node);
   const contentString = nodeToString(node, signalTemplates);
   const dataString = JSON.stringify({
@@ -50,27 +67,6 @@ function attributesToSignalIds(node, signalTemplates) {
   }
 }
 
-function nodeToString(node, signalTemplates) {
-  if (typeof node === "string") {
-    return node;
-  } else if (node instanceof SignalTemplate) {
-    return `<!--signal=${node.getId(signalTemplates)}-->`;
-  } else if (node instanceof ElementTemplate) {
-    const children = node.children
-      .map((child) => nodeToString(child, signalTemplates))
-      .join("");
-    const attributes = attributesToString(node.attributes);
-    const signalIds = attributesToSignalIds(node.attributes, signalTemplates);
-    const signalAttribute = signalIds
-      ? `data-signal-assign='${JSON.stringify(signalIds)}'`
-      : "";
-    const tag = [node.tagName, ...attributes, signalAttribute].join(" ");
-    return `<${tag}>${children}</${node.tagName}>`;
-  } else {
-    return node.toString();
-  }
-}
-
 function collectSignalTemplates(node) {
   if (node instanceof SignalTemplate) {
     return [node, ...node.args.flatMap(collectSignalTemplates)];
@@ -92,7 +88,7 @@ const outPath = path.normalize(args.out);
 await fs.ensureFile(outPath);
 
 const app = await import(`./${inPath}`);
-const [content, data] = serialize(app.default);
+const [content, data] = serialize(app.default());
 const outputText = await renderFileToString("./template.ejs", {
   head: `<script id="ssg-data" type="application/json">${data}</script><script type="module" src="./runtime.js"></script>`,
   body: `<div id="ssg-content">${content}</div>`,

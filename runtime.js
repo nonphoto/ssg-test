@@ -1,26 +1,6 @@
 import S from "https://cdn.skypack.dev/s-js";
 import { patch, assign } from "./dom.js";
-import { Name, ArgType } from "./signal.js";
-
-const time = S.data(0);
-
-(function loop(t) {
-  time(t);
-  requestAnimationFrame(loop);
-})();
-
-const signalLookup = {
-  [Name.Value]: S.value,
-  [Name.Floor]: (x) => S(() => Math.floor(x())),
-  [Name.Mul]: (a, b) => S(() => a() * b()),
-  [Name.Format]: (strings, ...args) =>
-    S(() =>
-      strings()
-        .map((s, i) => s + (i < args.length ? args[i]() : ""))
-        .join("")
-    ),
-  [Name.Time]: () => time,
-};
+import utils from "./utils.js";
 
 const deserialize = (string) => {
   const data = JSON.parse(string).signalTemplates;
@@ -28,12 +8,12 @@ const deserialize = (string) => {
   const create = (key) => {
     const [name, ...args] = data[key];
     if (!completed[key]) {
-      completed[key] = signalLookup[name](
+      completed[key] = utils[name](
         ...args.map(([argType, argValue]) => {
-          if (argType === ArgType.Signal) {
+          if (argType === 0) {
             return create(argValue);
           } else {
-            return () => argValue;
+            return argValue;
           }
         })
       );
