@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": {
-      "cmd": "deno run --allow-write --allow-read --unstable ssg.js ./app.js --out=index.html"
+      "cmd": "deno run --allow-write --allow-read --unstable build.js"
     }
   }
 }
