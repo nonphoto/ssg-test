@@ -24,7 +24,7 @@ async function serialize(node) {
       (value) => typeof value === "object"
     );
     const serializedChildren = children.join("");
-    const { tag = "span", ...attributes } = Object.assign(
+    const { tag = "div", ...attributes } = Object.assign(
       {},
       ...tagAndAttributes
     );
@@ -54,30 +54,7 @@ function serializeAttributes(attributes) {
   });
 }
 
-export async function importDeep(dir) {
-  let entries = [];
-  for await (const dirEntry of Deno.readDir(dir)) {
-    if (dirEntry.isFile) {
-      const importPath = path.resolve(dir, dirEntry.name);
-      const importResult = await import(importPath);
-      entries.push([importPath, importResult]);
-    } else if (dirEntry.isDirectory) {
-      const importPath = path.join(dir, dirEntry.name);
-      const importResult = await importDeep(importPath);
-      entries = [...entries, ...importResult];
-    }
-  }
-  return new Map(entries);
-}
-
-export function toOutPath(inPath, outPath) {
-  return path.resolve(
-    outPath,
-    path.relative("./pages", inPath).replace(".js", ".html")
-  );
-}
-
-export async function build(outPath, tree) {
+export default async function (outPath, tree) {
   const body = await serialize(tree);
   const outputText = await renderFileToString("./template.ejs", {
     head: ``,

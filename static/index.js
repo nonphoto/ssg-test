@@ -1,5 +1,5 @@
 import S from "https://cdn.skypack.dev/s-js";
-import { defineComponent, patch } from "./dom.js";
+import { defineComponent, patch } from "../dom.js";
 
 const time = S.data(0);
 function loop(t) {
