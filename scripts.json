@@ -3,5 +3,9 @@
     "start": {
       "cmd": "deno run --allow-write --allow-read --unstable build.js"
     }
+  },
+  "watcher": {
+    "match": ["**"],
+    "skip": ["*/.git/*", "public/**"]
   }
 }
