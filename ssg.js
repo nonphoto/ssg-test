@@ -1,40 +1,46 @@
 import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-
-function toKebabCase(string) {
-  return string.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
-}
+import paramCase from "https://deno.land/x/case/camelCase.ts";
 
 function partition(array, fn) {
   return [array.filter(fn), array.filter((v) => !fn(v))];
 }
 
-async function serialize(node) {
-  if (typeof node === "string") {
-    return node;
-  } else if (typeof node === "function") {
-    return await serialize(node());
-  } else if (node instanceof Promise) {
-    return await node;
-  } else if (Array.isArray(node)) {
-    const parts = await Promise.all(node.map(serialize));
-    const [tagAndAttributes, children] = partition(
-      parts,
-      (value) => typeof value === "object"
+async function resolve(data) {
+  if (typeof data === "function") {
+    return resolve(data());
+  } else if (data instanceof Promise) {
+    const result = await data;
+    return resolve(result);
+  } else {
+    return data;
+  }
+}
+
+async function serialize(data) {
+  const resolved = await resolve(data);
+  if (typeof resolved === "string") {
+    return resolved;
+  } else if (Array.isArray(resolved)) {
+    const resolvedItems = await Promise.all(resolved.map(resolve));
+    const [props, children] = partition(
+      resolvedItems,
+      (item) => typeof item === "object" && !Array.isArray(item)
     );
-    const serializedChildren = children.join("");
-    const { tag = "div", ...attributes } = Object.assign(
-      {},
-      ...tagAndAttributes
+    const serializedChildren = await Promise.all(
+      children.map((child) => serialize(child))
     );
+    const { tag = "div", ...attributes } = Object.assign({}, ...props);
     const serializedAttributes = serializeAttributes(attributes);
     const tagAndSerializedAttributes = [tag, ...serializedAttributes].join(" ");
-    return `<${tagAndSerializedAttributes}>${serializedChildren}</${tag}>`;
-  } else if (typeof node === "object") {
-    return node;
+    return `<${tagAndSerializedAttributes}>${serializedChildren.join(
+      ""
+    )}</${tag}>`;
+  } else if (resolved == null) {
+    return "";
   } else {
-    return node.toString();
+    return resolved.toString();
   }
 }
 
@@ -44,7 +50,7 @@ function serializeAttributes(attributes) {
       const styleString = Object.entries(value)
         .map(
           ([styleKey, styleValue]) =>
-            `${toKebabCase(styleKey)}:${styleValue.toString()};`
+            `${paramCase(styleKey)}:${styleValue.toString()};`
         )
         .join("");
       return `style="${styleString}"`;
@@ -54,8 +60,8 @@ function serializeAttributes(attributes) {
   });
 }
 
-export default async function (outPath, tree) {
-  const body = await serialize(tree);
+export default async function (outPath, data) {
+  const body = await serialize(data);
   const outputText = await renderFileToString("./template.ejs", {
     head: ``,
     body: `<div id="ssg-content">${body}</div>`,
