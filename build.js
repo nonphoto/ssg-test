@@ -1,19 +1,14 @@
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { extractProps, serialize } from "./ssg.js";
+import { serialize } from "./ssg.js";
+import { extract } from "./css.js";
 import items from "./data/items.js";
 
 const outDir = "public";
 const inDir = "pages";
 
 const template = async ({ head, body }) => {
-  let extractedCss = "";
-  for await (const { css } of extractProps(body)) {
-    if (css) {
-      extractedCss += css;
-    }
-  }
-
+  const extractedCss = await extract(body);
   return {
     tag: "html",
     lang: "en",
