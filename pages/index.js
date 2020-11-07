@@ -7,11 +7,13 @@ function css(...args) {
 }
 
 export default ({ items }) => {
-  return [
-    css({ display: "flex", background: "#eee" }),
-    items.map(({ title, slug }) => [
-      { tag: "a", href: `/${slug}.html` },
-      title,
-    ]),
-  ];
+  return {
+    tag: "div",
+    ...css({ display: "flex", flexDirection: "column", background: "#eee" }),
+    inner: items.map(({ title, slug }) => ({
+      tag: "a",
+      href: `/${slug}.html`,
+      inner: title,
+    })),
+  };
 };

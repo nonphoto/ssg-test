@@ -21,24 +21,18 @@ export async function serialize(data) {
   if (typeof resolved === "string") {
     return resolved;
   } else if (Array.isArray(resolved)) {
-    const resolvedItems = await Promise.all(resolved.map(resolve));
-    const [props, children] = partition(
-      resolvedItems,
-      (item) => typeof item === "object" && !Array.isArray(item)
-    );
-    const serializedChildren = await Promise.all(
-      children.map((child) => serialize(child))
-    );
-    const { tag = "div", ...attributes } = Object.assign({}, ...props);
+    const result = await Promise.all(resolved.map(serialize));
+    return result.join("");
+  } else if (typeof resolved === "object") {
+    const { tag = "div", inner, ...attributes } = resolved;
     const serializedAttributes = serializeAttributes(attributes);
     const tagAndSerializedAttributes = [tag, ...serializedAttributes].join(" ");
 
     if (htmlVoidElements.includes(tag)) {
       return `<${tagAndSerializedAttributes}/>`;
     } else {
-      return `<${tagAndSerializedAttributes}>${serializedChildren.join(
-        ""
-      )}</${tag}>`;
+      const serializedInner = await serialize(inner);
+      return `<${tagAndSerializedAttributes}>${serializedInner}</${tag}>`;
     }
   } else if (resolved == null) {
     return "";
@@ -47,19 +41,16 @@ export async function serialize(data) {
   }
 }
 
-export async function* allProps(data) {
+export async function* extractProps(data) {
   const resolved = await resolve(data);
   if (Array.isArray(resolved)) {
-    const [props, children] = partition(
-      resolved,
-      (item) => typeof item === "object" && !Array.isArray(item)
-    );
-    yield Object.assign({}, ...props);
-    for (let child of children) {
-      yield* allProps(child);
+    for (let item of resolved) {
+      yield* extractProps(item);
     }
   } else if (typeof resolved === "object") {
-    yield resolved;
+    const { inner, ...props } = resolved;
+    yield props;
+    yield* extractProps(inner);
   }
 }
 

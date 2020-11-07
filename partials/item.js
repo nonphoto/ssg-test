@@ -1,3 +1,12 @@
 export default ({ title, src }) => {
-  return [[title], [{ tag: "img", src }]];
+  return {
+    tag: "div",
+    inner: [
+      {
+        tag: "div",
+        inner: title,
+      },
+      { tag: "img", src },
+    ],
+  };
 };

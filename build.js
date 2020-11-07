@@ -1,6 +1,6 @@
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { allProps, serialize } from "./ssg.js";
+import { extractProps, serialize } from "./ssg.js";
 import items from "./data/items.js";
 
 const outDir = "public";
@@ -8,30 +8,33 @@ const inDir = "pages";
 
 const template = async ({ head, body }) => {
   let extractedCss = "";
-  for await (const { css } of allProps(body)) {
+  for await (const { css } of extractProps(body)) {
     if (css) {
       extractedCss += css;
     }
   }
 
-  return [
-    { tag: "html", lang: "en" },
-    [
-      { tag: "head" },
-      [
-        {
-          tag: "meta",
-          name: "viewport",
-          content: "width=device-width, initial-scale=1.0",
-        },
-      ],
-      [{ tag: "meta", charset: "utf-8" }],
-      [{ tag: "script", type: "module", src: "index.js" }],
-      head,
-      [{ tag: "style" }, extractedCss],
+  return {
+    tag: "html",
+    lang: "en",
+    inner: [
+      {
+        tag: "head",
+        inner: [
+          {
+            tag: "meta",
+            name: "viewport",
+            content: "width=device-width, initial-scale=1.0",
+          },
+          { tag: "meta", charset: "utf-8" },
+          { tag: "script", type: "module", src: "index.js" },
+          { tag: "style", inner: extractedCss },
+          head,
+        ],
+      },
+      { tag: "body", inner: body },
     ],
-    [{ tag: "body" }, body],
-  ];
+  };
 };
 
 async function writePage(slug, data) {
