@@ -1,13 +1,11 @@
-import { renderFileToString } from "https://deno.land/x/dejs@0.8.0/mod.ts";
-import * as fs from "https://deno.land/std/fs/mod.ts";
-import * as path from "https://deno.land/std/path/mod.ts";
 import paramCase from "https://deno.land/x/case/camelCase.ts";
+import htmlVoidElements from "https://cdn.skypack.dev/html-void-elements";
 
 function partition(array, fn) {
   return [array.filter(fn), array.filter((v) => !fn(v))];
 }
 
-async function resolve(data) {
+export async function resolve(data) {
   if (typeof data === "function") {
     return resolve(data());
   } else if (data instanceof Promise) {
@@ -18,7 +16,7 @@ async function resolve(data) {
   }
 }
 
-async function serialize(data) {
+export async function serialize(data) {
   const resolved = await resolve(data);
   if (typeof resolved === "string") {
     return resolved;
@@ -34,13 +32,34 @@ async function serialize(data) {
     const { tag = "div", ...attributes } = Object.assign({}, ...props);
     const serializedAttributes = serializeAttributes(attributes);
     const tagAndSerializedAttributes = [tag, ...serializedAttributes].join(" ");
-    return `<${tagAndSerializedAttributes}>${serializedChildren.join(
-      ""
-    )}</${tag}>`;
+
+    if (htmlVoidElements.includes(tag)) {
+      return `<${tagAndSerializedAttributes}/>`;
+    } else {
+      return `<${tagAndSerializedAttributes}>${serializedChildren.join(
+        ""
+      )}</${tag}>`;
+    }
   } else if (resolved == null) {
     return "";
   } else {
     return resolved.toString();
+  }
+}
+
+export async function* allProps(data) {
+  const resolved = await resolve(data);
+  if (Array.isArray(resolved)) {
+    const [props, children] = partition(
+      resolved,
+      (item) => typeof item === "object" && !Array.isArray(item)
+    );
+    yield Object.assign({}, ...props);
+    for (let child of children) {
+      yield* allProps(child);
+    }
+  } else if (typeof resolved === "object") {
+    yield resolved;
   }
 }
 
@@ -58,15 +77,4 @@ function serializeAttributes(attributes) {
       return `${key}="${value}"`;
     }
   });
-}
-
-export default async function (outPath, data) {
-  const body = await serialize(data);
-  const outputText = await renderFileToString("./template.ejs", {
-    head: ``,
-    body: `<div id="ssg-content">${body}</div>`,
-  });
-  outPath = path.normalize(outPath);
-  await fs.ensureFile(outPath);
-  await Deno.writeTextFile(outPath, outputText);
 }
