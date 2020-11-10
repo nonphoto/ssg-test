@@ -247,35 +247,47 @@ export function element(tagName, ...args) {
   return parent;
 }
 
-export function defineComponent(name, callback) {
-  const elements = document.querySelectorAll(`[component="${name}"]`);
-  for (let root of elements) {
-    const treeWalker = document.createTreeWalker(
-      root,
-      NodeFilter.SHOW_ELEMENT,
-      {
-        acceptNode: function (node) {
-          return node.getAttribute("component")
-            ? NodeFilter.FILTER_REJECT
-            : node.getAttribute("ref")
-            ? NodeFilter.FILTER_ACCEPT
-            : NodeFilter.FILTER_SKIP;
-        },
+const observer = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    for (const node of mutation.addedNodes) {
+      if (node.getAttribute("data-ref")) {
+        connectRef(node);
       }
-    );
-    const nodes = { root };
-    let currentNode = treeWalker.nextNode();
-    while (currentNode) {
-      const ref = currentNode.getAttribute("ref");
-      if (Array.isArray(nodes[ref])) {
-        nodes[ref].push(currentNode);
-      } else if (nodes[ref] instanceof Node) {
-        nodes[ref] = [nodes[ref], currentNode];
-      } else {
-        nodes[ref] = currentNode;
-      }
-      currentNode = treeWalker.nextNode();
     }
-    callback(nodes);
+  }
+});
+
+observer.observe(document.body, {
+  subtree: true,
+  childList: true,
+});
+
+const constructorMap = new Map();
+const instanceMap = new WeakMap();
+
+function connectRef(node) {
+  const [componentKey, ...keyPath] = node.getAttribute("data-ref").split(".");
+  let parent = node.parentElement;
+  while (parent && parent.getAttribute("data-component") !== componentKey) {
+    parent = node.parentElement;
+  }
+  if (parent) {
+    if (!instanceMap.has(parent)) {
+      instanceMap.set(parent, constructorMap.get(componentKey)(parent));
+    }
+    patch(node, instanceMap.get(parent)[keyPath[0]]);
+  }
+}
+
+export function defineComponent(name, callback) {
+  if (!constructorMap.has(name)) {
+    constructorMap.set(name, callback);
+    const nodes = document.querySelectorAll(`[data-ref]`);
+    for (const node of nodes) {
+      const [componentKey] = node.getAttribute("data-ref").split(".");
+      if (componentKey === name) {
+        connectRef(node);
+      }
+    }
   }
 }

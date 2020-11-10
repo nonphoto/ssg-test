@@ -1,4 +1,4 @@
-import paramCase from "https://deno.land/x/case/camelCase.ts";
+import paramCase from "https://deno.land/x/case/paramCase.ts";
 import htmlVoidElements from "https://cdn.skypack.dev/html-void-elements";
 import htmlElementAttributes from "https://cdn.skypack.dev/html-element-attributes";
 
@@ -35,13 +35,8 @@ export async function serialize(data) {
     return result.join("");
   } else if (typeof resolved === "object") {
     const { tag = "div", inner, ...attributes } = resolved;
-    const serializedAttributes = Object.entries(attributes)
-      .filter(
-        ([key]) =>
-          htmlElementAttributes["*"].includes(key) ||
-          htmlElementAttributes[tag].includes(key)
-      )
-      .map(([key, value]) => {
+    const serializedAttributes = Object.entries(attributes).map(
+      ([key, value]) => {
         if (key === "style") {
           const styleString = Object.entries(value)
             .map(
@@ -51,9 +46,10 @@ export async function serialize(data) {
             .join("");
           return `style="${styleString}"`;
         } else {
-          return `${key}="${value}"`;
+          return `${paramCase(key)}="${value}"`;
         }
-      });
+      }
+    );
     const tagAndSerializedAttributes = [tag, ...serializedAttributes].join(" ");
     if (htmlVoidElements.includes(tag)) {
       return `<${tagAndSerializedAttributes}/>`;

@@ -1,5 +1,5 @@
 import S from "https://cdn.skypack.dev/s-js";
-import { defineComponent, patch } from "../dom.js";
+import { defineComponent } from "/lib/dom.js";
 
 const time = S.data(0);
 function loop(t) {
@@ -8,9 +8,9 @@ function loop(t) {
 }
 loop();
 
-defineComponent("main", (refs) => {
-  patch(
-    refs.time,
-    S(() => Math.floor(time() * 0.001))
-  );
+defineComponent("main", (props) => {
+  return {
+    message: props.message,
+    time: S(() => Math.floor(time() * 0.001)),
+  };
 });
