@@ -180,6 +180,14 @@ export function patch(parent, value, current) {
   }
 }
 
+export function bind(node, value) {
+  return patch(node, value, Array.from(node.childNodes));
+}
+
+export function query(selector, node = document.body) {
+  return node.querySelector(`:scope ${selector}`);
+}
+
 function normalize(array, normalized = []) {
   for (let i = 0, item, itemType; i < array.length; i++) {
     item = array[i];
@@ -223,35 +231,28 @@ export function clear(parent, current, marker) {
 
 export function element(tagName, ...args) {
   const parent = document.createElement(tagName);
-  let argType;
-  function assignArg(arg) {
-    argType = typeof arg;
-    if (arg == null || argType === "boolean") {
-    } else if (argType === "string") {
-      parent.appendChild(document.createTextNode(arg));
-    } else if (Array.isArray(arg)) {
-      for (let i = 0; i < arg.length; i++) {
-        assignArg(arg[i]);
-      }
-    } else if (arg instanceof Element || argType === "function") {
-      patch(parent, arg);
-    } else if (argType === "object") {
-      assign(parent, arg);
+  for (value of args) {
+    if (typeof value === "object" && !(value instanceof Node)) {
+      assign(parent, value);
     } else {
-      parent.appendChild(document.createTextNode(arg.toString()));
+      patch(parent, value);
     }
-  }
-  for (let i = 0; i < args.length; i++) {
-    assignArg(args[i]);
   }
   return parent;
 }
 
+const keyAttribute = "data-component";
+
 const observer = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
-      if (node.getAttribute("data-ref")) {
-        connectRef(node);
+      if (node instanceof Element && node.getAttribute(keyAttribute)) {
+        connect(node.getAttribute(keyAttribute), node);
+      }
+    }
+    for (const node of mutation.removedNodes) {
+      if (node instanceof Element && node.getAttribute(keyAttribute)) {
+        disconnect(node);
       }
     }
   }
@@ -260,34 +261,42 @@ const observer = new MutationObserver((mutations) => {
 observer.observe(document.body, {
   subtree: true,
   childList: true,
+  attributes: true,
+  attributeFilter: [keyAttribute],
 });
 
 const constructorMap = new Map();
-const instanceMap = new WeakMap();
+const disposerMap = new WeakMap();
 
-function connectRef(node) {
-  const [componentKey, ...keyPath] = node.getAttribute("data-ref").split(".");
-  let parent = node.parentElement;
-  while (parent && parent.getAttribute("data-component") !== componentKey) {
-    parent = node.parentElement;
+function connect(name, node) {
+  if (!constructorMap.has(name)) {
+    throw new Error(`Component "${name}" does not exist.`);
+  } else {
+    S.root((dispose) => {
+      const preDispose = constructorMap.get(name)(node);
+      disposerMap.set(node, () => {
+        preDispose();
+        dispose();
+      });
+    });
   }
-  if (parent) {
-    if (!instanceMap.has(parent)) {
-      instanceMap.set(parent, constructorMap.get(componentKey)(parent));
-    }
-    patch(node, instanceMap.get(parent)[keyPath[0]]);
+}
+
+function disconnect(node) {
+  if (disposerMap.has(node)) {
+    disposerMap.get(node)();
+    disposerMap.delete(node);
   }
 }
 
 export function defineComponent(name, callback) {
-  if (!constructorMap.has(name)) {
+  if (constructorMap.has(name)) {
+    throw new Error(`Component "${name}" is already defined.`);
+  } else {
     constructorMap.set(name, callback);
-    const nodes = document.querySelectorAll(`[data-ref]`);
+    const nodes = document.querySelectorAll(`[${keyAttribute}=${name}]`);
     for (const node of nodes) {
-      const [componentKey] = node.getAttribute("data-ref").split(".");
-      if (componentKey === name) {
-        connectRef(node);
-      }
+      connect(name, node);
     }
   }
 }

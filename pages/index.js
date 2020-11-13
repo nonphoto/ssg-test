@@ -7,14 +7,15 @@ export default ({ items }) => {
       {
         tag: "div",
         dataComponent: "main",
+        dataMessage: "Timer: ",
         inner: [
           {
             tag: "span",
-            dataRef: "main.message",
+            class: "message",
           },
           {
             tag: "span",
-            dataRef: "main.time",
+            class: "time",
           },
         ],
       },
