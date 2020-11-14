@@ -4,6 +4,8 @@ import { serialize } from "./ssg.js";
 import { extract } from "./css.js";
 import items from "./data/items.js";
 
+console.log(window);
+
 const outDir = "public";
 const inDir = "pages";
 

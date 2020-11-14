@@ -1,10 +1,10 @@
 export default ({ title, src }) => {
   return {
     tag: "div",
-    inner: [
+    children: [
       {
         tag: "div",
-        inner: title,
+        children: title,
       },
       { tag: "img", src },
     ],

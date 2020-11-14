@@ -1,5 +1,5 @@
 import S from "https://cdn.skypack.dev/s-js";
-import { defineComponent, bind, query, element } from "/lib/dom.js";
+import { defineComponent, bind, assign, query, element } from "/lib/dom.js";
 
 const time = S.data(0);
 function loop(_t) {
@@ -8,14 +8,23 @@ function loop(_t) {
 }
 loop();
 
+const mouse = S.data([0, 0]);
+window.addEventListener("mousemove", (event) => {
+  mouse([event.clientX, event.clientY]);
+});
+
+defineComponent("images", (node) => {
+  console.log(node);
+  assign(node, {
+    style: {
+      transform: S.on(time, () => {
+        const [x, y] = mouse();
+        return `translate(${x}px, ${y}px)`;
+      }),
+    },
+  });
+});
+
 defineComponent("main", (node) => {
-  const now = performance.now();
-  bind(query(".message", node), element("div", node.dataset.message));
-  bind(
-    query(".time", node),
-    S(() => Math.floor((time() - now) * 0.001))
-  );
-  return () => {
-    console.log("disposed");
-  };
+  node.children;
 });

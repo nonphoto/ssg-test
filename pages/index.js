@@ -1,27 +1,52 @@
-import { css, merge, global } from "../css.js";
+import { css, global } from "../css.js";
+import { element } from "../ssg.js";
 
 export default ({ items }) => {
-  return {
-    children: [
+  return element.div(
+    {
+      ...global({ html: { fontFamily: "-apple-system, sans-serif" } }),
+      dataComponent: "main",
+    },
+    element.div(
       {
-        dataComponent: "main",
-        dataMessage: "Timer: ",
-        children: [{ class: "message" }, { class: "time" }],
+        dataComponent: "links",
+        ...css({
+          fontSize: "10vmin",
+          fontWeight: 700,
+          letterSpacing: "-0.05ch",
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }),
       },
+      ...items.map(({ title, slug }) =>
+        element.a(
+          {
+            href: `/${slug}.html`,
+            ...css({
+              textDecoration: "none",
+              color: "inherit",
+            }),
+          },
+          title
+        )
+      )
+    ),
+    element.div(
       {
-        ...merge(
-          css({
-            display: "flex",
-            flexDirection: "column",
-          }),
-          global({ div: { border: "solid red 1px" } })
-        ),
-        children: items.map(({ title, slug }) => ({
-          tag: "a",
-          href: `/${slug}.html`,
-          children: title,
-        })),
+        dataComponent: "images",
+        ...css({
+          position: "fixed",
+          top: 0,
+          left: 0,
+        }),
       },
-    ],
-  };
+      ...items.map(({ src }) =>
+        element.img({ src, ...css({ position: "absolute", top: 0, left: 0 }) })
+      )
+    )
+  );
 };

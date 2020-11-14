@@ -65,12 +65,12 @@ export async function serialize(data) {
   }
 }
 
-export function elementStub(tag, attributes, ...children) {
+export function element(tag, attributes, ...children) {
   return { tag, ...attributes, children };
 }
 
 const tagNames = [...htmlTagNames, ...svgTagNames];
 for (let tag of htmlTagNames) {
-  elementStub[tag] = (attributes, ...children) =>
-    elementStub(tag, attributes, ...children);
+  element[tag] = (attributes, ...children) =>
+    element(tag, attributes, ...children);
 }
