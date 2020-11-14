@@ -1,4 +1,6 @@
 import S from "https://cdn.skypack.dev/s-js";
+import htmlTagNames from "https://cdn.skypack.dev/html-tag-names";
+import svgTagNames from "https://cdn.skypack.dev/svg-tag-names";
 import { namespaces, syntheticEventNames } from "./constants.js";
 import reconcile from "./reconcile.js";
 
@@ -210,7 +212,7 @@ function normalize(array, normalized = []) {
   return normalized;
 }
 
-export function clear(parent, current, marker) {
+function clear(parent, current, marker) {
   if (current instanceof Comment) {
     current.nodeValue = "" + marker;
     return current;
@@ -230,16 +232,19 @@ export function clear(parent, current, marker) {
   return marker;
 }
 
-export function element(tagName, ...args) {
-  const parent = document.createElement(tagName);
-  for (const value of args) {
-    if (typeof value === "object" && !(value instanceof Node)) {
-      assign(parent, value);
-    } else {
-      patch(parent, value);
-    }
+export function element(tag, props, ...children) {
+  const parent = document.createElement(tag);
+  assign(parent, props);
+  for (const child of children) {
+    patch(parent, child);
   }
   return parent;
+}
+
+const tagNames = [...htmlTagNames, ...svgTagNames];
+for (let tag of tagNames) {
+  element[tag] = (attributes, ...children) =>
+    element(tag, attributes, ...children);
 }
 
 const keyAttribute = "data-component";

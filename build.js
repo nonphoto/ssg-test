@@ -12,10 +12,10 @@ const template = async ({ head, body }) => {
   return {
     tag: "html",
     lang: "en",
-    inner: [
+    children: [
       {
         tag: "head",
-        inner: [
+        children: [
           {
             tag: "meta",
             name: "viewport",
@@ -23,11 +23,11 @@ const template = async ({ head, body }) => {
           },
           { tag: "meta", charset: "utf-8" },
           { tag: "script", type: "module", src: "index.js" },
-          { tag: "style", inner: extractedCss },
+          { tag: "style", children: extractedCss },
           head,
         ],
       },
-      { tag: "body", inner: body },
+      { tag: "body", children: body },
     ],
   };
 };

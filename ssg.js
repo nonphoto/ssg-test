@@ -1,6 +1,7 @@
 import paramCase from "https://deno.land/x/case/paramCase.ts";
 import htmlVoidElements from "https://cdn.skypack.dev/html-void-elements";
-import htmlElementAttributes from "https://cdn.skypack.dev/html-element-attributes";
+import htmlTagNames from "https://cdn.skypack.dev/html-tag-names";
+import svgTagNames from "https://cdn.skypack.dev/svg-tag-names";
 
 export async function resolve(data) {
   if (typeof data === "function") {
@@ -20,9 +21,9 @@ export async function* extractProps(data) {
       yield* extractProps(item);
     }
   } else if (typeof resolved === "object") {
-    const { inner, ...props } = resolved;
+    const { children, ...props } = resolved;
     yield props;
-    yield* extractProps(inner);
+    yield* extractProps(children);
   }
 }
 
@@ -34,7 +35,7 @@ export async function serialize(data) {
     const result = await Promise.all(resolved.map(serialize));
     return result.join("");
   } else if (typeof resolved === "object") {
-    const { tag = "div", inner, ...attributes } = resolved;
+    const { tag = "div", children, ...attributes } = resolved;
     const serializedAttributes = Object.entries(attributes).map(
       ([key, value]) => {
         if (key === "style") {
@@ -54,12 +55,22 @@ export async function serialize(data) {
     if (htmlVoidElements.includes(tag)) {
       return `<${tagAndSerializedAttributes}/>`;
     } else {
-      const serializedInner = await serialize(inner);
-      return `<${tagAndSerializedAttributes}>${serializedInner}</${tag}>`;
+      const serializedChildren = await serialize(children);
+      return `<${tagAndSerializedAttributes}>${serializedChildren}</${tag}>`;
     }
   } else if (resolved == null) {
     return "";
   } else {
     return resolved.toString();
   }
+}
+
+export function elementStub(tag, attributes, ...children) {
+  return { tag, ...attributes, children };
+}
+
+const tagNames = [...htmlTagNames, ...svgTagNames];
+for (let tag of htmlTagNames) {
+  elementStub[tag] = (attributes, ...children) =>
+    elementStub(tag, attributes, ...children);
 }
