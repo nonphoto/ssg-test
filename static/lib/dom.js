@@ -181,7 +181,8 @@ export function patch(parent, value, current) {
 }
 
 export function bind(node, value) {
-  return patch(node, value, Array.from(node.childNodes));
+  const childNodes = Array.from(node.childNodes);
+  return patch(node, value, childNodes.length > 0 ? childNodes : undefined);
 }
 
 export function query(selector, node = document.body) {
@@ -231,7 +232,7 @@ export function clear(parent, current, marker) {
 
 export function element(tagName, ...args) {
   const parent = document.createElement(tagName);
-  for (value of args) {
+  for (const value of args) {
     if (typeof value === "object" && !(value instanceof Node)) {
       assign(parent, value);
     } else {
