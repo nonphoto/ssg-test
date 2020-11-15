@@ -1,15 +1,31 @@
 import { css, global } from "../css.js";
-import { element } from "../ssg.js";
+import { element, bind } from "../ssg.js";
 
 export default ({ items }) => {
+  // const coefficient = script(() => 0.001);
+  // const time = script((c) => {
+  //   const time = S.data(0);
+  //   function loop(_t) {
+  //     time(_t * c);
+  //     requestAnimationFrame(loop);
+  //   }
+  //   loop();
+  //   return time;
+  // }, coefficient);
+  const mouse = () => {
+    const mouse = S.data([0, 0]);
+    window.addEventListener("mousemove", (event) => {
+      mouse([event.clientX, event.clientY]);
+    });
+    return [100, 100];
+  };
   return element.div(
     {
       ...global({ html: { fontFamily: "-apple-system, sans-serif" } }),
-      dataComponent: "main",
     },
+    element.div({}, mouse),
     element.div(
       {
-        dataComponent: "links",
         ...css({
           fontSize: "10vmin",
           fontWeight: 700,
@@ -37,12 +53,12 @@ export default ({ items }) => {
     ),
     element.div(
       {
-        dataComponent: "images",
         ...css({
           position: "fixed",
           top: 0,
           left: 0,
         }),
+        style: bind(([x]) => `transform: translateX(${x}px)`, mouse),
       },
       ...items.map(({ src }) =>
         element.img({ src, ...css({ position: "absolute", top: 0, left: 0 }) })
