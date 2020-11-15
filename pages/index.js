@@ -23,7 +23,7 @@ export default ({ items }) => {
     {
       ...global({ html: { fontFamily: "-apple-system, sans-serif" } }),
     },
-    element.div({}, mouse),
+    // element.div({}, mouse),
     element.div(
       {
         ...css({

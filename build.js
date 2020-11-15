@@ -1,18 +1,45 @@
 import * as fs from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { serialize, extractProps } from "./ssg.js";
-import { extract } from "./css.js";
+import * as ssg from "./ssg.js";
+import { extract as extractCss } from "./css.js";
 import items from "./data/items.js";
-import {
-  compile,
-  serialize as serializeCss,
-  stringify,
-} from "https://cdn.skypack.dev/stylis";
+import hash from "https://cdn.skypack.dev/@emotion/hash";
+
+function partition(fn, array) {
+  return [array.filter(fn), array.filter((...args) => !fn(...args))];
+}
+
+function extractFns(data) {
+  const fns = {};
+  function insertFn(fn) {
+    const args = Array.isArray(fn.args) ? fn.args : [];
+    const argKeys = args.map(insertFn);
+    const value = fn.toString();
+    const key = hash(value);
+    fns[key] = [value, ...argKeys];
+    return key;
+  }
+  const mapped = ssg.map((object) => {
+    let [assign, attributes] = partition(
+      ([, value]) => typeof value === "function",
+      Object.entries(object)
+    );
+    assign = assign.map(([key, value]) => {
+      const fnKey = insertFn(value);
+      return [key, fnKey];
+    });
+    const rest = Object.fromEntries(attributes);
+    return assign.length > 0
+      ? { ...rest, dataAssign: JSON.stringify(Object.fromEntries(assign)) }
+      : rest;
+  }, data);
+  return [mapped, JSON.stringify(fns)];
+}
 
 const outDir = "public";
 const inDir = "pages";
 
-const template = ({ head, body, css }) => {
+const template = ({ body, css, fns }) => {
   return {
     tag: "html",
     lang: "en",
@@ -26,9 +53,9 @@ const template = ({ head, body, css }) => {
             content: "width=device-width, initial-scale=1.0",
           },
           { tag: "meta", charset: "utf-8" },
-          { tag: "script", type: "module", src: "index.js" },
+          { tag: "script", type: "module", src: "runtime.js" },
+          { tag: "script", type: "text/json", id: "ssg-data", children: fns },
           { tag: "style", children: css },
-          head,
         ],
       },
       { tag: "body", children: body },
@@ -37,16 +64,11 @@ const template = ({ head, body, css }) => {
 };
 
 async function writePage(slug, data) {
-  let extractedCss = "";
-  const { head, body } = await serialize(data, {
-    map: ({ css, ...rest }) => {
-      extractedCss += css;
-      return rest;
-    },
-  });
-  const css = serializeCss(compile(extractedCss), stringify);
-  const outText = await serialize(template({ head, body, css }));
-  console.log(outText);
+  let body = await ssg.resolve(data);
+  let fns, css;
+  [body, fns] = extractFns(body);
+  [body, css] = extractCss(body);
+  const outText = ssg.serialize(template({ body, fns, css }));
   const outPath = path.resolve(outDir, slug.replace(/\..+$/, "") + ".html");
   await fs.ensureFile(outPath);
   await Deno.writeTextFile(outPath, outText);

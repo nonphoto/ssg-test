@@ -93,9 +93,13 @@ export function assign(node, props) {
   for (key in props) {
     value = props[key];
     if (key === "style") {
-      let styleKey;
-      for (styleKey in value) {
-        setStyle(node, styleKey, value[styleKey]);
+      if (typeof value === "object") {
+        let styleKey;
+        for (styleKey in value) {
+          setStyle(node, styleKey, value[styleKey]);
+        }
+      } else {
+        setAttribute(node, key, value);
       }
     } else if (key === "classList") {
       setClassList(node, value);

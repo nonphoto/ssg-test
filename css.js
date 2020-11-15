@@ -1,6 +1,6 @@
 import { serializeStyles } from "https://cdn.skypack.dev/@emotion/serialize";
 import { compile, serialize, stringify } from "https://cdn.skypack.dev/stylis";
-import { extractProps } from "./ssg.js";
+import * as ssg from "./ssg.js";
 
 export function css(...args) {
   const { name, styles } = serializeStyles(args);
@@ -27,12 +27,11 @@ export function merge(...args) {
   return { class: classNames.join(" "), css: cssFragments.join(" ") };
 }
 
-export async function extract(data) {
+export function extract(data) {
   let extractedCss = "";
-  for await (const { css } of extractProps(data)) {
-    if (css) {
-      extractedCss += css;
-    }
-  }
-  return serialize(compile(extractedCss), stringify);
+  const mapped = ssg.map(({ css, ...rest }) => {
+    extractedCss += css;
+    return rest;
+  }, data);
+  return [mapped, serialize(compile(extractedCss), stringify)];
 }
